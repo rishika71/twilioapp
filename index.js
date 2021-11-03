@@ -177,9 +177,11 @@ async function sendConvo(resp){
 
       if(profile === false){
         sendMsg("Welcome to the study");
+        symptoms_map = new Map(comp_symptoms_map);
         await user_collection.insertOne({_id: from, symptom: [], severity: [], stage: '0', times: 0, date: new Date().toLocaleDateString()});
       }else{
         sendMsg("Welcome back to the study!");
+        symptoms_map = new Map(comp_symptoms_map);
         await user_collection.updateOne({_id: from}, {$set: {symptom: [], severity: [], stage: '0', times: 0}})
       }
       sendSymptomMsg();
