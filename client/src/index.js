@@ -7,6 +7,7 @@ import * as serviceWorker from './serviceWorker';
 import { BrowserRouter } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { CookiesProvider } from 'react-cookie';
+import './components/Home.css';
 
 ReactDOM.render(
     <CookiesProvider>

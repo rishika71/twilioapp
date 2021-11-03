@@ -1,7 +1,6 @@
 import React, { Component } from 'react';
 import { Users } from '../components/Users';
 
-
 export class UsersContainer extends Component {
     static displayName = UsersContainer.name;
 
@@ -81,7 +80,6 @@ export class UsersContainer extends Component {
                 <Users
                     usersList={this.state.usersList}
                     onDeleteClick={this.handleDeleteClick}
-                    currentUser={this.state.currentUser}
                 />
             </div>
         );

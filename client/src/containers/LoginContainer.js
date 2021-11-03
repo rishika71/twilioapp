@@ -1,5 +1,4 @@
 import React, { Component } from 'react';
-import { Redirect, withRouter } from 'react-router';
 import { Login } from '../components/Login';
 
 
@@ -11,11 +10,6 @@ export class LoginContainer extends Component {
 
         this.state = {
             loggedIn: false,
-            user: {
-                FirstName: "S",
-                LastName: "J",
-                Email: "s@s.com"
-              },
             email: "",
             password: ""
         };
@@ -87,5 +81,3 @@ export class LoginContainer extends Component {
         );
     }
 }
-
-export default withRouter(LoginContainer);

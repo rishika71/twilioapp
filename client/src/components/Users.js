@@ -59,8 +59,8 @@ export class Users extends Component {
                 <Table>
                     <thead>
                         <tr>
-                        <th>#</th>
-                        <th>Number</th>
+                        <th>Sr.</th>
+                        <th>Phone</th>
                         <th>Date</th>
                         <th>Symptoms</th>
                         <th>Action</th>
