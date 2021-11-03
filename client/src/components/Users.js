@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { Table } from 'reactstrap';
+import {Button, Table} from 'reactstrap';
 
 export class Users extends Component {
     static displayName = Users.name;
@@ -43,9 +43,9 @@ export class Users extends Component {
                         <td headers="date">{value.date}</td>
                         <td headers="symptoms">{linesHTML}</td>
                         <td headers="action">
-                            <button value={value._id} onClick={(event) => this.props.onDeleteClick(event, value._id)}>
+                            <Button value={value._id} onClick={(event) => this.props.onDeleteClick(event, value._id)}>
                                 Delete
-                            </button>
+                            </Button>
                         </td>
                     </tr>
                 )
