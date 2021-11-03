@@ -22,25 +22,22 @@ export class NavMenu extends Component {
   }
 
   render () {
-      let usertf = false;
-
 
       let log = (<NavItem>
-          <NavLink tag={Link} className="text-dark" to="/login" >Login</NavLink>
+          <NavLink tag={Link} className="text-light" to="/login" >Login</NavLink>
       </NavItem>);
 
       if (this.props.cookies.get('token') !== undefined) {
-          usertf = true;
           log = (<NavItem>
-              <NavLink tag={Link} className="text-dark" to="/login" onClick={() => this.props.setUser(null, null)}>Logout</NavLink>
+              <NavLink tag={Link} className="text-light" to="/login" onClick={() => this.props.setUser(null, null)}>Logout</NavLink>
           </NavItem>);
       }
 
     return (
       <header>
-        <Navbar className="navbar-expand-sm navbar-toggleable-sm ng-white border-bottom box-shadow mb-3" light>
+        <Navbar style={{background: 'rgb(6, 3, 58)'}} className="navbar-expand-sm navbar-toggleable-sm ng-white border-bottom box-shadow mb-3" light>
           <Container>
-            <NavbarBrand tag={Link} to="/">Admin</NavbarBrand>
+            <NavbarBrand className="text-light">Admin</NavbarBrand>
             <NavbarToggler onClick={this.toggleNavbar} className="mr-2" />
             <Collapse className="d-sm-inline-flex flex-sm-row-reverse" isOpen={!this.state.collapsed} navbar>
               <ul className="navbar-nav flex-grow">

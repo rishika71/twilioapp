@@ -7,7 +7,6 @@ import { withCookies } from 'react-cookie';
 import { Home } from './components/Home';
 
 import './custom.css'
-import {Users} from "./components/Users";
 
 class App extends Component {
     static displayName = App.name;
@@ -17,8 +16,7 @@ class App extends Component {
 
         this.state = {
             user: null,
-            token: this.props.cookies.get('token')
-
+            token: this.props.cookies.get('token'),
         }
 
         this.setUser = this.setUser.bind(this);
