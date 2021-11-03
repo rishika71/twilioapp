@@ -30,7 +30,7 @@ export class Users extends Component {
                 for (const symptom of value.symptom) {
                     let severe = severity_map.get(value.severity[i++]);
                     if (severe === "None")
-                        symp_str += i + ". doesn't have " + symptoms_map.get(symptom) + ",";
+                        symp_str += i + ". Doesn't have " + symptoms_map.get(symptom) + ",";
                     else
                         symp_str += i + ". Has " + severe + " " + symptoms_map.get(symptom) + ",";
                 }
@@ -38,7 +38,7 @@ export class Users extends Component {
                 let lines = symp_str.split(',')
                 let linesHTML = lines.map((line) => <div>{line}</div>);
                 items.push(<tr id={value.name}>
-                        <td headers="rowNum">{index + 1}</td>
+                        <td headers="rowNum">{index + 1}.</td>
                         <td headers="phone">{value._id}</td>
                         <td headers="date">{value.date}</td>
                         <td headers="symptoms">{linesHTML}</td>
