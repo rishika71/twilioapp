@@ -1,142 +1,161 @@
 require('dotenv').config();
 
-const accountSid = process.env.TWILIO_ACCOUNT_SID;
-const authToken = process.env.TWILIO_AUTH_TOKEN;
-const twilio_client = require('twilio')(accountSid, authToken);
+const twilio_client = require('twilio')("AC8b26198f1af777d49d8382d17a5fdbff", "f5a136880fe3fc6494351b862aa1b62b");
 const express = require('express');
-const MessagingResponse = require('twilio').twiml.MessagingResponse;
-const {MongoClient, ObjectId} = require('mongodb');
+const {MongoClient} = require('mongodb');
 
 const app = express();
 const port = process.env.PORT || 3000;
 
-app.use(express.urlencoded({ extended: true }));
+app.use(express.urlencoded({ extended: false }));
 
-const client = new MongoClient(process.env.MONGODB_URL, { useNewUrlParser: true, useUnifiedTopology: true });
+const client = new MongoClient("mongodb+srv://root:HdjW4DK9xFxcCbHH@cluster0.rxdum.mongodb.net/myFirstDatabase?retryWrites=true&w=majority", { useNewUrlParser: true, useUnifiedTopology: true });
 
 let user_collection;
 
-client.connect(err => {
+client.connect(() => {
   user_collection = client.db("user").collection("user");
 });
 
-const user_symptoms = {
-	1: "Headache",
-	2: "Dizziness",
-	3: "Nausea",
-	4: "Fatigue",
-  5: "Sadness"
+let symptoms_map = new Map()
+symptoms_map.set("0", "None")
+symptoms_map.set("1", "Headache")
+symptoms_map.set("2", "Dizziness")
+symptoms_map.set("3", "Nausea")
+symptoms_map.set("4", "Fatigue")
+symptoms_map.set("5", "Sadness")
+
+const comp_symptoms_map = new Map(symptoms_map)
+
+const severity_map = new Map()
+severity_map.set("0", "None")
+severity_map.set("1", "mild")
+severity_map.set("2", "mild")
+severity_map.set("3", "moderate")
+severity_map.set("4", "severe")
+
+let from; // personal
+let to; // twilio
+
+function sendMsg(msg){
+  twilio_client.messages.create({
+    body: msg,
+    from: to, to: from
+  }).then().catch();
 }
 
-twilio_client.messages
-  .create({
-     body: 'Welcome to the study' + '\n\nPlease indicate your symptom \n(1)Headache, \n(2)Dizziness, \n(3)Nausea, \n(4)Fatigue, \n(5)Sadness, \n(0)None',
-     from: process.env.TWILIO_PHONE_NUMBER,  // twilio phone number
-     to: process.env.USER_PHONE_NUMBER  // user phone number
-   })
-  .then(message => console.log(message.sid));
+function sendSymptomMsg() {
+  let str = ""
+  for (const [key, value] of symptoms_map) {
+    str += "(" + key + ")" + value + ", ";
+  }
+  sendMsg('Please indicate your symptom ' + str);
+}
 
+async function sendConvo(resp){
+  let profile = await profileCheck(from);
 
-  app.post('/sms', async(req, res) => {
+  if(profile === false || profile[0]["stage"] === '-1'){
+    sendMsg('Please start the checkup with sending `start`.');
+    return;
+  }
 
-    const twiml = new MessagingResponse();
-    const profile = await profileCheck(req);
+  const info = profile[0];
+  for (let i = 0; i < info["symptom"].length; i++) {
+    symptoms_map.delete(info["symptom"][i])
+  }
 
-    //console.log(profile)
+  if(info["stage"] === '0'){
 
-    if(profile === false){
-
-      const validated = validateUserResponse(twiml, req, res);
-      if(validated){
-        await user_collection.insertOne({_id: req.body.From, usersymptoms:{symptom: req.body.Body}}, async function(err, result){
-          sendSymptomsRankMessage(twiml, req.body.Body, res);
-        });
+    if(!symptoms_map.has(resp)){
+      let str = ""
+      for (const [key] of symptoms_map) {
+        str += key + ",";
       }
+      sendMsg('Please enter a valid number (' + str + ')')
+      return;
+    }
+
+    const symptom = symptoms_map.get(resp);
+
+    if(symptom === "None") {
+      sendMsg('Thank you and we will check with you later.');
+      await user_collection.updateOne({_id: from}, {$set: {stage: '-1', times: 0}});
+      return;
+    }
+
+    await user_collection.updateOne({_id: from}, {$set: {stage: '1'}});
+    await user_collection.updateOne({_id: from}, {$push: {symptom: resp}});
+    sendMsg('On a scale from 0 (none) to 4 (severe), how would you rate your ' + symptom + ' in the last 24 hours?');
+
+  }else if(info["stage"] === '1'){
+
+    if(!severity_map.has(resp)){
+      let str = ""
+      for (const [key] of severity_map) {
+        str += key + ",";
+      }
+      sendMsg('Please enter a valid number (' + str + ')')
+      return;
+    }
+
+    const severity = severity_map.get(resp);
+    let symptoms = info["symptom"];
+    let symptom = comp_symptoms_map.get(symptoms[symptoms.length-1]);
+
+    let times = info["times"];
+
+    if(severity === "None"){
+      sendMsg("You do not have a " + symptom);
+      return;
+    }
+
+    sendMsg("You have a " + severity + " " + symptom);
+    await user_collection.updateOne({_id: from}, {$push: {severity: resp}});
+
+    if(times >= 2) {
+      await user_collection.updateOne({_id: from}, {$set: {stage: '-1', times: 2}});
+      sendMsg("Thank you and see you soon");
+    } else {
+      await user_collection.updateOne({_id: from}, {$set: {stage: '0', times: times + 1}});
+      sendSymptomMsg();
+    }
+
+  }
+}
+
+  app.post('/sms', async(req) => {
+
+    const resp = req.body.Body; // message
+    from = req.body.From; // personal
+    to = req.body.To; // twilio
+
+    if(resp.toLowerCase() === "start"){
+      let profile = await profileCheck(from);
+
+      if(profile === false){
+        sendMsg("Welcome to the study");
+        await user_collection.insertOne({_id: from, symptom: [], severity: [], stage: '0', times: 0});
+      }else{
+        sendMsg("Welcome back to the study!");
+        await user_collection.updateOne({_id: from}, {$set: {symptom: [], severity: [], stage: '0', times: 0}})
+      }
+      sendSymptomMsg();
+
     }else{
-      
-        const info = profile[0];
-        const symptoms_obj = info["usersymptoms"];
-        const symptom = symptoms_obj["symptom"];
-        let ratings = symptoms_obj["ratings"];
-        
-        if(ratings === undefined){
-          await user_collection.updateOne({_id: req.body.From}, {$set: {usersymptoms:{symptom: symptom, ratings: req.body.Body}}});
-          sendRatingMessage(twiml, symptom, req.body.Body, res);
-        }
-    
-    } 
-    
+
+      await sendConvo(resp);
+
+    }
+
   });
 
-
-  async function profileCheck(req){
-    const id = req.body.From;
-    const cursor = user_collection.find({_id: id});
+  async function profileCheck(number){
+    const cursor = user_collection.find({_id: number});
     const result = await cursor.toArray();
-
-    if(result.length < 1){
-      return false;
-    }
-
+    if(result.length < 1) return false;
     return result;
   }
-
-  function validateUserResponse(twiml, req, res) {
-
-    if(req.body.Body != '1' && req.body.Body != '2' && req.body.Body != '3' && req.body.Body != '4' && req.body.Body != '5'){
-      twiml.message('\n\nPlease enter a number from 0 to 5.'); 
-      res.writeHead(200, {'Content-Type': 'text/xml'});
-      res.end(twiml.toString());
-      return false;
-    }
-    return true;
-  }
-
-  function getSymptomName(symptom) {
-    switch (symptom) {
-      case "1":
-        return user_symptoms[1];
-      case "2":
-        return user_symptoms[2];
-      case "3":
-        return user_symptoms[3];
-      case "4":
-        return user_symptoms[4];
-      case "5":
-        return user_symptoms[5];
-    }
-
-  }
-
-  function sendSymptomsRankMessage(twiml, symptom, res) {
-    
-    let symptom_name = getSymptomName(symptom);
-    twiml.message(`\n\n On a scale from 0 (none) to 4 (severe), how would you rate your ${symptom_name} in the last 24 hours?`);
-    res.writeHead(200, {'Content-Type': 'text/xml'});
-    res.end(twiml.toString());
-  }
-
-
-  function sendRatingMessage(twiml, symptom, ratings, res) {
-    
-    let userSymptom = getSymptomName(symptom);
-
-    if (ratings == '1' || ratings == '2') {
-      twiml.message(`\n\n You have a mild ${userSymptom}`);
-    } else if (ratings == '3') {
-      twiml.message(`\n\n You have a moderate ${userSymptom}`);
-    } else if (ratings == '4') {
-      twiml.message(`\n\n You have a severe ${userSymptom}`);
-    }else if (ratings == '0') {
-      twiml.message(`\n\n You do not have ${userSymptom}`);
-    }else {
-      twiml.message('\n\nPlease enter a number from 0 to 4.');
-    }
-    res.writeHead(200, {'Content-Type': 'text/xml'});
-    res.end(twiml.toString());
-  }
-  
-
 
   app.listen(port, () => {
     console.log(`Started on http://localhost:${port}`);
