@@ -34,3 +34,6 @@
 - The portal shows a list of enrolled participants
 - Phone number, enrollment date, and symptoms reported with their ranking for each user.
 - The admin can view and delete an enrolled user.
+
+### Youtube Link:
+https://youtu.be/SH0S-iqQD0c
